@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#f5f7e9">
+<title>MOMO WORLD – Snake</title>
+<style>
+:root{--bg:#f5f7e9;--green:#58c98a;--dark:#315b4a;--pink:#ff8e9e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,sans-serif;color:var(--dark);display:flex;justify-content:center;min-height:100vh}
+main{width:min(100%,520px);padding:18px 16px 28px;display:flex;flex-direction:column;align-items:center;gap:12px}
+h1{font-size:clamp(30px,8vw,42px);margin:5px 0 0;letter-spacing:1px} .sub{margin:0;color:#668575;font-weight:700;font-size:13px;letter-spacing:1px}
+.stats{width:100%;display:flex;justify-content:space-between;gap:12px}.stat{background:white;border-radius:18px;padding:10px 18px;flex:1;box-shadow:0 3px 0 #dfe9dc}.stat small{display:block;color:#7a9b88;font-weight:700}.stat strong{font-size:25px}
+#game{width:100%;max-width:432px;aspect-ratio:3/4;background:white;border:7px solid #dfe9dc;border-radius:22px;touch-action:none;box-shadow:0 5px 0 #d2dfd0}
+.actions{display:flex;gap:10px;width:100%;max-width:432px}.btn{border:0;border-radius:999px;background:var(--green);color:white;font-weight:800;font-size:17px;padding:14px 18px;flex:1;box-shadow:0 4px 0 #269b69}.btn.secondary{background:white;color:var(--dark);box-shadow:0 4px 0 #dfe9dc}
+.note{font-size:13px;text-align:center;color:#668575;margin:0}
+#overlay{position:fixed;inset:0;background:#20392d88;display:none;align-items:center;justify-content:center;padding:22px}
+.panel{background:white;border-radius:26px;padding:28px 22px;text-align:center;width:min(100%,360px);box-shadow:0 8px 0 #dfe9dc}
+.panel h2{margin:0 0 8px;font-size:27px}.panel p{color:#668575}.panel button{width:100%;margin-top:12px}
+.pad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(2,48px);gap:6px;justify-content:center}
+.pad button{border:0;border-radius:14px;background:white;color:var(--dark);font-size:22px;font-weight:900;box-shadow:0 3px 0 #dfe9dc;touch-action:manipulation}
+.pad .empty{visibility:hidden}
+@media(min-width:700px){main{padding-top:26px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>🐍 MOMO WORLD</h1>
+  <p class="sub">CUỘC PHIÊU LƯU CỦA MOMO</p>
+  <section class="stats">
+    <div class="stat"><small>ĐIỂM</small><strong id="score">0</strong></div>
+    <div class="stat"><small>CHIỀU DÀI</small><strong id="length">3</strong></div>
+  </section>
+  <canvas id="game" width="360" height="480" aria-label="Màn chơi rắn săn mồi"></canvas>
+  <div class="actions">
+    <button class="btn" id="start">BẮT ĐẦU</button>
+    <button class="btn secondary" id="pause">TẠM DỪNG</button>
+  </div>
+  <div class="pad" aria-label="Điều khiển">
+    <span class="empty"></span><button data-dir="up">▲</button><span class="empty"></span>
+    <button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button>
+  </div>
+  <p class="note">Vuốt trên bàn chơi hoặc dùng các nút mũi tên để điều khiển Momo.</p>
+</main>
+<div id="overlay"><div class="panel"><h2 id="overTitle">Xin chào!</h2><p id="overText">Ăn trái cây và lớn lên thật vui!</p><button class="btn" id="again">CHƠI NGAY</button></div></div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const scoreEl=document.getElementById('score'),lenEl=document.getElementById('length');
+const overlay=document.getElementById('overlay'),overTitle=document.getElementById('overTitle'),overText=document.getElementById('overText');
+const cols=15,rows=20,cell=24;
+let snake,dir,next,food,score,timer=null,state='menu',last=0,touch=null;
+const dirs={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+function reset(){snake=[{x:5,y:10},{x:4,y:10},{x:3,y:10}];dir={...dirs.right};next={...dir};score=0;spawn();updateStats();draw()}
+function spawn(){let p;do{p={x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*rows)}}while(snake.some(s=>s.x===p.x&&s.y===p.y));food=p}
+function updateStats(){scoreEl.textContent=score;lenEl.textContent=snake.length}
+function rounded(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+function draw(){
+ ctx.clearRect(0,0,360,480);ctx.fillStyle='#fff';ctx.fillRect(0,0,360,480);
+ ctx.strokeStyle='#edf1e4';ctx.lineWidth=1;
+ for(let x=0;x<=cols;x++){ctx.beginPath();ctx.moveTo(x*cell,0);ctx.lineTo(x*cell,480);ctx.stroke()}
+ for(let y=0;y<=rows;y++){ctx.beginPath();ctx.moveTo(0,y*cell);ctx.lineTo(360,y*cell);ctx.stroke()}
+ // fruit
+ const fx=food.x*cell+12,fy=food.y*cell+12;
+ ctx.fillStyle='#ff8e9e';ctx.beginPath();ctx.arc(fx,fy,9,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#ffd8de';ctx.beginPath();ctx.arc(fx-3,fy-3,2.5,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#269b69';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(fx+1,fy-8);ctx.lineTo(fx+4,fy-13);ctx.stroke();
+ snake.slice().reverse().forEach((p,ri)=>{const i=snake.length-1-ri;const x=p.x*cell+12,y=p.y*cell+12;
+ ctx.fillStyle=i===0?'#269b69':(i%2?'#70d99a':'#58c98a');ctx.beginPath();ctx.arc(x,y,i===0?11:10,0,Math.PI*2);ctx.fill();
+ if(i===0){const side={x:-dir.y*4,y:dir.x*4},front={x:dir.x*4,y:dir.y*4};
+ for(const sign of [-1,1]){ctx.fillStyle='white';ctx.beginPath();ctx.arc(x+front.x+side.x*sign,y+front.y+side.y*sign,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#315b4a';ctx.beginPath();ctx.arc(x+front.x+side.x*sign+1,y+front.y+side.y*sign+1,1.2,0,Math.PI*2);ctx.fill()}}
+ });
+ if(state==='menu'){banner('Chào bạn! Mình là Momo','Nhấn BẮT ĐẦU để chơi nhé')}
+ if(state==='paused'){banner('Tạm dừng','Nhấn TIẾP TỤC để chơi tiếp')}
+}
+function banner(a,b){ctx.fillStyle='#315b4a';ctx.textAlign='center';ctx.font='bold 23px system-ui';ctx.fillText(a,180,215);ctx.font='15px system-ui';ctx.fillStyle='#668575';ctx.fillText(b,180,245)}
+function setDir(d){const v=dirs[d];if(!v||v.x+dir.x===0&&v.y+dir.y===0)return;next={...v}}
+function step(){dir=next;const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};const eat=h.x===food.x&&h.y===food.y;
+ if(h.x<0||h.x>=cols||h.y<0||h.y>=rows||snake.slice(0,eat?snake.length:snake.length-1).some(p=>p.x===h.x&&p.y===h.y)){end();return}
+ snake.unshift(h);if(eat){score+=10;spawn()}else snake.pop();updateStats();draw()}
+function loop(){if(state!=='playing')return;step();if(state==='playing')timer=setTimeout(loop,145)}
+function start(){clearTimeout(timer);reset();state='playing';overlay.style.display='none';draw();timer=setTimeout(loop,145)}
+function end(){state='over';clearTimeout(timer);overTitle.textContent='Giỏi lắm!';overText.textContent='Bạn đã ghi được '+score+' điểm. Thử lại nhé!';overlay.style.display='flex'}
+document.getElementById('start').onclick=()=>state==='paused'?resume():start();
+document.getElementById('pause').onclick=()=>{if(state==='playing'){state='paused';clearTimeout(timer);overTitle.textContent='Tạm dừng';overText.textContent='Nghỉ một chút rồi chơi tiếp nhé!';document.getElementById('again').textContent='TIẾP TỤC';overlay.style.display='flex';draw()}else if(state==='paused')resume()};
+function resume(){state='playing';overlay.style.display='none';document.getElementById('again').textContent='CHƠI NGAY';draw();timer=setTimeout(loop,145)}
+document.getElementById('again').onclick=()=>state==='paused'?resume():start();
+document.querySelectorAll('[data-dir]').forEach(b=>b.addEventListener('click',()=>setDir(b.dataset.dir)));
+canvas.addEventListener('touchstart',e=>{touch={x:e.changedTouches[0].clientX,y:e.changedTouches[0].clientY}},{passive:true});
+canvas.addEventListener('touchend',e=>{if(!touch)return;const dx=e.changedTouches[0].clientX-touch.x,dy=e.changedTouches[0].clientY-touch.y;if(Math.max(Math.abs(dx),Math.abs(dy))>18)setDir(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));touch=null},{passive:true});
+document.addEventListener('keydown',e=>{const m={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};if(m[e.key])setDir(m[e.key]);if(e.key===' '){if(state==='menu'||state==='over')start();else if(state==='playing')document.getElementById('pause').click();else resume()}});
+reset();draw();
+})();
+</script>
+</body>
+</html>
