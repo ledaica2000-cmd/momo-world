@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+
+<html lang="vi">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+
+<title>MOMO WORLD V2</title>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+
+<style>
+
+*{box-sizing:border-box}
+
+html,body,#game{margin:0;width:100%;height:100%;overflow:hidden}
+
+body{background:#173b29;font-family:Arial;touch-action:none}
+
+canvas{display:block}
+
+#hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:5;color:white;pointer-events:none}
+
+.panel{background:#123b2bdc;border:1px solid #ffffff44;border-radius:13px;padding:9px 12px;font-size:12px;line-height:1.7}
+
+#title{font-size:16px;color:#9dffae;font-weight:bold}
+
+#controls{position:fixed;bottom:22px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:end;z-index:8;pointer-events:none}
+
+#joy{width:120px;height:120px;border:2px solid #ffffff66;border-radius:50%;background:#ffffff20;position:relative;pointer-events:auto;touch-action:none}
+
+#stick{position:absolute;width:48px;height:48px;left:34px;top:34px;border-radius:50%;background:#a5ffc0;border:3px solid white}
+
+#boost{width:76px;height:76px;border-radius:50%;border:3px solid #ffe6a1;background:linear-gradient(#ffd45d,#ed8136);color:white;font-weight:bold;pointer-events:auto;touch-action:none}
+
+#start{position:fixed;inset:0;z-index:20;background:#102b22ed;display:flex;align-items:center;justify-content:center;color:white;text-align:center;padding:25px}
+
+#startbox{max-width:340px}
+
+#logo{font-size:36px;font-weight:900;color:#a3ffb5;text-shadow:0 3px 15px #36b96b}
+
+#play{border:0;border-radius:30px;padding:15px 40px;background:#6ce995;color:#10452a;font-size:18px;font-weight:bold}
+
+#message{position:fixed;bottom:155px;left:0;right:0;text-align:center;color:white;font-size:12px;z-index:4;pointer-events:none;text-shadow:0 2px 4px #000}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="game"></div>
+
+<div id="hud">
+
+  <div class="panel">
+
+    <div id="title">🌿 MOMO WORLD</div>
+
+    <div>Cấp độ: <span id="level">1</span></div>
+
+    <div>Linh khí: <span id="score">0</span></div>
+
+    <div>Chiều dài: <span id="length">5</span></div>
+
+  </div>
+
+  <div class="panel">
+
+    🌳 Rừng Khởi Nguyên
+
+    <div id="position">X: 0 | Y: 0</div>
+
+  </div>
+
+</div>
+
+<div id="message">Ăn linh quả để Momo lớn lên!</div>
+
+<div id="controls">
+
+  <div id="joy"><div id="stick"></div></div>
+
+  <button id="boost">⚡<br>TĂNG TỐC</button>
+
+</div>
+
+<div id="start">
+
+  <div id="startbox">
+
+    <div style="font-size:65px">🐉</div>
+
+    <div id="logo">MOMO WORLD</div>
+
+    <p>RỪNG KHỞI NGUYÊN</p>
+
+    <p style="color:#c8e8d0;font-size:14px;line-height:1.7">
+
+      Khám phá thế giới huyền ảo.<br>
+
+      Thu thập linh quả và phát triển sức mạnh.
+
+    </p>
+
+    <button id="play">BẮT ĐẦU</button>
+
+    <p style="font-size:12px;color:#b8d8c1;line-height:1.7">
+
+      Kéo nút tròn để đổi hướng.<br>
+
+      Giữ tăng tốc để di chuyển nhanh.
+
+    </p>
+
+  </div>
+
+</div>
+
+<script>
+
+const WORLD=3000;
+
+let scene;
+
+let started=false;
+
+let boost=false;
+
+let joyX=0,joyY=0,joyActive=false;
+
+let score=0;
+
+let foodItems=[];
+
+const config={
+
+  type:Phaser.AUTO,
+
+  parent:"game",
+
+  backgroundColor:"#78bd78",
+
+  scale:{
+
+    mode:Phaser.Scale.RESIZE,
+
+    width:window.innerWidth,
+
+    height:window.innerHeight
+
+  },
+
+  scene:{create,update}
+
+};
+
+new Phaser.Game(config);
+
+function create(){
+
+  scene=this;
+
+  scene.physics.world.setBounds(0,0,WORLD,WORLD);
+
+  scene.cameras.main.setBounds(0,0,WORLD,WORLD);
+
+  // Nền rừng
+
+  const ground=this.add.graphics();
+
+  ground.fillStyle(0x78bd78,1);
+
+  ground.fillRect(0,0,WORLD,WORLD);
+
+  ground.lineStyle(1,0x5f9e61,.18);
+
+  for(let x=0;x<WORLD;x+=80){
+
+    ground.lineBetween(x,0,x,WORLD);
+
+  }
+
+  for(let y=0;y<WORLD;y+=80){
+
+    ground.lineBetween(0,y,WORLD,y);
+
+  }
+
+  // Cây cối
+
+  for(let i=0;i<170;i++){
+
+    const x=Phaser.Math.Between(60,WORLD-60);
+
+    const y=Phaser.Math.Between(60,WORLD-60);
+
+    if(Phaser.Math.Distance.Between(x,y,1500,1500)<190)continue;
+
+    const tree=this.add.container(x,y);
+
+    const shadow=this.add.ellipse(0,12,45,17,0x24502b,.3);
+
+    const trunk=this.add.rectangle(0,0,12,27,0x86532f);
+
+    const leaves=this.add.circle(0,-18,24,
+
+      Phaser.Math.RND.pick([0x287e45,0x369653,0x4aa75b,0x226d40]));
+
+    const light=this.add.circle(-8,-26,8,0x9be77f,.6);
+
+    tree.add([shadow,trunk,leaves,light]);
+
+    tree.setDepth(y);
+
+  }
+
+  // Hồ nước
+
+  const lake=this.add.graphics();
+
+  lake.fillStyle(0x318dc1,1);
+
+  lake.fillEllipse(650,700,440,260);
+
+  lake.lineStyle(9,0x9ce8e9,.8);
+
+  lake.strokeEllipse(650,700,440,260);
+
+  lake.setDepth(710);
+
+  // Ranh giới
+
+  const border=this.add.graphics();
+
+  border.lineStyle(12,0x28623d,1);
+
+  border.strokeRect(0,0,WORLD,WORLD);
+
+  border.setDepth(5000);
+
+  // Dữ liệu rắn
+
+  this.snake={
+
+    x:1500,y:1500,
+
+    angle:-Math.PI/2,
+
+    length:5,
+
+    speed:125,
+
+    trail:[],
+
+    segments:[],
+
+    head:null,
+
+    shadow:null
+
+  };
+
+  for(let i=0;i<500;i++){
+
+    this.snake.trail.push({x:1500,y:1500});
+
+  }
+
+  this.snake.shadow=this.add.ellipse(1500,1510,40,23,0x17462a,.3);
+
+  // Thân rắn
+
+  for(let i=0;i<120;i++){
+
+    const body=this.add.circle(1500,1500,12,0x39bd75);
+
+    body.setStrokeStyle(2,0x207e4d);
+
+    body.setDepth(1500);
+
+    this.snake.segments.push(body);
+
+  }
+
+  // Đầu rắn
+
+  this.snake.head=this.add.container(1500,1500);
+
+  const headShadow=this.add.ellipse(0,10,35,20,0x17462a,.3);
+
+  const headShape=this.add.ellipse(0,0,34,30,0x55d887);
+
+  headShape.setStrokeStyle(3,0x208b52);
+
+  const eye1=this.add.circle(9,-7,5,0xffffff);
+
+  const eye2=this.add.circle(9,7,5,0xffffff);
+
+  const pupil1=this.add.circle(11,-7,2,0x173b28);
+
+  const pupil2=this.add.circle(11,7,2,0x173b28);
+
+  const cheek=this.add.circle(12,13,4,0xffa6a6,.8);
+
+  this.snake.head.add([
+
+    headShadow,headShape,eye1,eye2,pupil1,pupil2,cheek
+
+  ]);
+
+  this.snake.head.setDepth(1501);
+
+  // Camera
+
+  this.cameras.main.startFollow(
+
+    this.snake.head,true,.08,.08
+
+  );
+
+  // Thức ăn
+
+  spawnFoods(55);
+
+  updateHUD();
+
+}
+
+function spawnFoods(number){
+
+  for(let i=0;i<number;i++){
+
+    const x=Phaser.Math.Between(100,WORLD-100);
+
+    const y=Phaser.Math.Between(100,WORLD-100);
+
+    const food=scene.add.container(x,y);
+
+    const glow=scene.add.circle(0,0,15,0xffd45a,.2);
+
+    const fruit=scene.add.circle(0,0,7,
+
+      Phaser.Math.RND.pick([
+
+        0xffcf45,0xff6f78,0x9d79ff,
+
+        0x57dcda,0xffa34f
+
+      ])
+
+    );
+
+    fruit.setStrokeStyle(2,0xffffff,.8);
+
+    const shine=scene.add.circle(-2,-3,2,0xffffff,.9);
+
+    food.add([glow,fruit,shine]);
+
+    food.setDepth(y);
+
+    foodItems.push({object:food,x,y});
+
+  }
+
+}
+
+function update(time,delta){
+
+  if(!started)return;
+
+  const s=this.snake;
+
+  const dt=Math.min(delta/1000,.04);
+
+  // Điều khiển hướng
+
+  if(joyActive){
+
+    const target=Math.atan2(joyY,joyX);
+
+    const diff=Phaser.Math.Angle.Wrap(target-s.angle);
+
+    s.angle+=Phaser.Math.Clamp(diff,-2.8*dt,2.8*dt);
+
+  }
+
+  // Di chuyển liên tục
+
+  const speed=boost?205:125;
+
+  s.x+=Math.cos(s.angle)*speed*dt;
+
+  s.y+=Math.sin(s.angle)*speed*dt;
+
+  // Giới hạn bản đồ
+
+  s.x=Phaser.Math.Clamp(s.x,30,WORLD-30);
+
+  s.y=Phaser.Math.Clamp(s.y,30,WORLD-30);
+
+  s.trail.unshift({x:s.x,y:s.y});
+
+  if(s.trail.length>4500){
+
+    s.trail.length=4500;
+
+  }
+
+  // Vẽ thân rắn
+
+  const spacing=13;
+
+  for(let i=0;i<s.length;i++){
+
+    const index=Math.min(
+
+      Math.floor((i+1)*spacing),s.trail.length-1
+
+    );
+
+    const point=s.trail[index];
+
+    const body=s.segments[i];
+
+    body.setPosition(point.x,point.y);
+
+    body.setDepth(point.y);
+
+    body.setVisible(true);
+
+    const scale=1-i*.002;
+
+    body.setScale(Math.max(.72,scale));
+
+  }
+
+  for(let i=s.length;i<s.segments.length;i++){
+
+    s.segments[i].setVisible(false);
+
+  }
+
+  s.head.setPosition(s.x,s.y);
+
+  s.head.setRotation(s.angle);
+
+  s.head.setDepth(s.y+20);
+
+  s.shadow.setPosition(s.x,s.y+12);
+
+  s.shadow.setDepth(s.y);
+
+  // Kiểm tra ăn thức ăn
+
+  for(let i=foodItems.length-1;i>=0;i--){
+
+    const f=foodItems[i];
+
+    const distance=Phaser.Math.Distance.Between(
+
+      s.x,s.y,f.x,f.y
+
+    );
+
+    if(distance<23){
+
+      f.object.destroy();
+
+      foodItems.splice(i,1);
+
+      s.length=Math.min(s.length+1,120);
+
+      score+=10;
+
+      if(score%100===0){
+
+        document.getElementById("message").textContent=
+
+          "✨ Momo đã tích lũy thêm linh khí!";
+
+      }
+
+      if(foodItems.length<35){
+
+        spawnFoods(20);
+
+      }
+
+      updateHUD();
+
+    }
+
+  }
+
+  // Vị trí
+
+  document.getElementById("position").textContent=
+
+    "X: "+Math.floor(s.x)+" | Y: "+Math.floor(s.y);
+
+}
+
+function updateHUD(){
+
+  document.getElementById("score").textContent=score;
+
+  document.getElementById("length").textContent=
+
+    scene?scene.snake.length:5;
+
+  document.getElementById("level").textContent=
+
+    Math.floor(score/100)+1;
+
+}
+
+// Joystick cảm ứng
+
+function moveStick(e){
+
+  const rect=joystick.getBoundingClientRect();
+
+  const centerX=rect.left+rect.width/2;
+
+  const centerY=rect.top+rect.height/2;
+
+  let dx=e.clientX-centerX;
+
+  let dy=e.clientY-centerY;
+
+  const distance=Math.hypot(dx,dy);
+
+  const max=36;
+
+  if(distance>max){
+
+    dx=dx/distance*max;
+
+    dy=dy/distance*max;
+
+  }
+
+  stick.style.left=(36+dx)+"px";
+
+  stick.style.top=(36+dy)+"px";
+
+  if(Math.hypot(dx,dy)>7){
+
+    joyX=dx;
+
+    joyY=dy;
+
+    joyActive=true;
+
+  }else{
+
+    joyActive=false;
+
+  }
+
+}
+
+joystick.addEventListener("pointerdown",e=>{
+
+  e.preventDefault();
+
+  joystick.setPointerCapture(e.pointerId);
+
+  moveStick(e);
+
+});
+
+joystick.addEventListener("pointermove",e=>{
+
+  if(e.buttons || e.pressure>0)moveStick(e);
+
+});
+
+function releaseStick(){
+
+  joyActive=false;
+
+  stick.style.left="34px";
+
+  stick.style.top="34px";
+
+}
+
+joystick.addEventListener("pointerup",releaseStick);
+
+joystick.addEventListener("pointercancel",releaseStick);
+
+boostButton.addEventListener("pointerdown",e=>{
+
+  e.preventDefault();
+
+  boost=true;
+
+  boostButton.style.transform="scale(.92)";
+
+});
+
+function releaseBoost(){
+
+  boost=false;
+
+  boostButton.style.transform="scale(1)";
+
+}
+
+boostButton.addEventListener("pointerup",releaseBoost);
+
+boostButton.addEventListener("pointercancel",releaseBoost);
+
+boostButton.addEventListener("lostpointercapture",releaseBoost);
+
+document.getElementById("play").addEventListener("click",()=>{
+
+  started=true;
+
+  document.getElementById("start").style.display="none";
+
+  document.getElementById("message").textContent=
+
+    "Chào mừng đến với Rừng Khởi Nguyên!";
+
+});
+
+</script>
+
+</body>
+
+</html>
