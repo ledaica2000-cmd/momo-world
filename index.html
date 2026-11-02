@@ -1,96 +1,1269 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#f5f7e9">
-<title>MOMO WORLD – Snake</title>
+<title>MOMO WORLD V3</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <style>
-:root{--bg:#f5f7e9;--green:#58c98a;--dark:#315b4a;--pink:#ff8e9e}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,sans-serif;color:var(--dark);display:flex;justify-content:center;min-height:100vh}
-main{width:min(100%,520px);padding:18px 16px 28px;display:flex;flex-direction:column;align-items:center;gap:12px}
-h1{font-size:clamp(30px,8vw,42px);margin:5px 0 0;letter-spacing:1px} .sub{margin:0;color:#668575;font-weight:700;font-size:13px;letter-spacing:1px}
-.stats{width:100%;display:flex;justify-content:space-between;gap:12px}.stat{background:white;border-radius:18px;padding:10px 18px;flex:1;box-shadow:0 3px 0 #dfe9dc}.stat small{display:block;color:#7a9b88;font-weight:700}.stat strong{font-size:25px}
-#game{width:100%;max-width:432px;aspect-ratio:3/4;background:white;border:7px solid #dfe9dc;border-radius:22px;touch-action:none;box-shadow:0 5px 0 #d2dfd0}
-.actions{display:flex;gap:10px;width:100%;max-width:432px}.btn{border:0;border-radius:999px;background:var(--green);color:white;font-weight:800;font-size:17px;padding:14px 18px;flex:1;box-shadow:0 4px 0 #269b69}.btn.secondary{background:white;color:var(--dark);box-shadow:0 4px 0 #dfe9dc}
-.note{font-size:13px;text-align:center;color:#668575;margin:0}
-#overlay{position:fixed;inset:0;background:#20392d88;display:none;align-items:center;justify-content:center;padding:22px}
-.panel{background:white;border-radius:26px;padding:28px 22px;text-align:center;width:min(100%,360px);box-shadow:0 8px 0 #dfe9dc}
-.panel h2{margin:0 0 8px;font-size:27px}.panel p{color:#668575}.panel button{width:100%;margin-top:12px}
-.pad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(2,48px);gap:6px;justify-content:center}
-.pad button{border:0;border-radius:14px;background:white;color:var(--dark);font-size:22px;font-weight:900;box-shadow:0 3px 0 #dfe9dc;touch-action:manipulation}
-.pad .empty{visibility:hidden}
-@media(min-width:700px){main{padding-top:26px}}
+*{box-sizing:border-box}
+html,body,#game{margin:0;width:100%;height:100%;overflow:hidden}
+body{background:#173b29;font-family:Arial;touch-action:none}
+canvas{display:block}
+#hud{
+ position:fixed;top:10px;left:10px;right:10px;
+ display:none;justify-content:space-between;
+ z-index:5;color:white;pointer-events:none
+}
+.panel{
+ background:#123b2be8;border:1px solid #ffffff55;
+ border-radius:13px;padding:8px 11px;
+ font-size:12px;line-height:1.7
+}
+#controls{
+ display:none;position:fixed;bottom:18px;
+ left:18px;right:18px;justify-content:space-between;
+ align-items:end;z-index:8;pointer-events:none
+}
+#joy{
+ width:120px;height:120px;border:2px solid #ffffff77;
+ border-radius:50%;background:#ffffff25;
+ position:relative;pointer-events:auto;touch-action:none
+}
+#stick{
+ position:absolute;width:48px;height:48px;
+ left:34px;top:34px;border-radius:50%;
+ background:#a5ffc0;border:3px solid white
+}
+#boost{
+ width:76px;height:76px;border-radius:50%;
+ border:3px solid #ffe6a1;
+ background:linear-gradient(#ffd45d,#ed8136);
+ color:white;font-weight:bold;pointer-events:auto;
+ touch-action:none
+}
+#message{
+ position:fixed;bottom:150px;left:0;right:0;
+ text-align:center;color:white;font-size:13px;
+ z-index:9;pointer-events:none;text-shadow:0 2px 4px #000
+}
+#menu{
+ position:fixed;inset:0;z-index:20;
+ background:linear-gradient(#102b22f5,#163d2bf5);
+ color:white;overflow-y:auto;text-align:center;
+ padding:20px 14px
+}
+#logo{
+ font-size:32px;font-weight:900;color:#a3ffb5;
+ text-shadow:0 3px 15px #36b96b;margin:8px
+}
+#characters{
+ display:grid;grid-template-columns:repeat(2,1fr);
+ gap:10px;max-width:480px;margin:18px auto
+}
+.character{
+ background:#ffffff13;border:2px solid #ffffff35;
+ border-radius:15px;padding:12px 6px;
+ color:white;min-height:120px
+}
+.character.selected{
+ border:2px solid #9dffae;
+ background:#31794b88
+}
+.avatar{font-size:37px}
+.character strong{display:block;margin:5px 0}
+.character small{color:#d5e9d8}
+#play,#restart{
+ border:0;border-radius:30px;padding:14px 40px;
+ background:#6ce995;color:#10452a;
+ font-size:18px;font-weight:bold
+}
+#stats{font-size:13px;color:#d4f0db;line-height:1.8}
+#gameover{
+ display:none;position:fixed;inset:0;z-index:15;
+ background:#102b22df;color:white;
+ align-items:center;justify-content:center;
+ text-align:center;padding:20px
+}
 </style>
 </head>
 <body>
-<main>
-  <h1>🐍 MOMO WORLD</h1>
-  <p class="sub">CUỘC PHIÊU LƯU CỦA MOMO</p>
-  <section class="stats">
-    <div class="stat"><small>ĐIỂM</small><strong id="score">0</strong></div>
-    <div class="stat"><small>CHIỀU DÀI</small><strong id="length">3</strong></div>
-  </section>
-  <canvas id="game" width="360" height="480" aria-label="Màn chơi rắn săn mồi"></canvas>
-  <div class="actions">
-    <button class="btn" id="start">BẮT ĐẦU</button>
-    <button class="btn secondary" id="pause">TẠM DỪNG</button>
-  </div>
-  <div class="pad" aria-label="Điều khiển">
-    <span class="empty"></span><button data-dir="up">▲</button><span class="empty"></span>
-    <button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button>
-  </div>
-  <p class="note">Vuốt trên bàn chơi hoặc dùng các nút mũi tên để điều khiển Momo.</p>
-</main>
-<div id="overlay"><div class="panel"><h2 id="overTitle">Xin chào!</h2><p id="overText">Ăn trái cây và lớn lên thật vui!</p><button class="btn" id="again">CHƠI NGAY</button></div></div>
+
+<div id="game"></div>
+
+<div id="hud">
+ <div class="panel">
+  <b style="color:#9dffae">🌿 MOMO WORLD</b>
+  <div>Nhân vật: <span id="hero">Momo</span></div>
+  <div>Cấp độ: <span id="level">1</span></div>
+  <div>Linh khí: <span id="score">0</span></div>
+  <div>Kích thước: <span id="length">5</span></div>
+ </div>
+ <div class="panel">
+  🌳 Rừng Khởi Nguyên
+  <div id="position">X: 1500 | Y: 1500</div>
+  <div id="status">Bình thường</div>
+ </div>
+</div>
+
+<div id="message">Chọn linh thú để bắt đầu!</div>
+
+<div id="controls">
+ <div id="joy"><div id="stick"></div></div>
+ <button id="boost">⚡<br>TĂNG TỐC</button>
+</div>
+
+<div id="menu">
+ <div style="font-size:55px">🐉</div>
+ <div id="logo">MOMO WORLD</div>
+ <p>RỪNG KHỞI NGUYÊN</p>
+ <h3>✨ CHỌN LINH THÚ</h3>
+ <div id="characters"></div>
+ <div id="stats">Chọn nhân vật để xem năng lực.</div>
+ <button id="play">VÀO RỪNG</button>
+ <p style="font-size:12px;color:#b8d8c1">
+  Kéo joystick để điều khiển.<br>
+  Giữ nút tăng tốc để chạy nhanh.
+ </p>
+</div>
+
+<div id="gameover">
+ <div>
+  <div style="font-size:65px">💫</div>
+  <h1>MOMO ĐÃ GỤC!</h1>
+  <p id="deathReason">Bạn đã va chạm.</p>
+  <button id="restart">CHƠI LẠI</button>
+  <p style="font-size:12px">Bạn có thể chọn nhân vật khác.</p>
+ </div>
+</div>
+
 <script>
-(()=>{
-const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
-const scoreEl=document.getElementById('score'),lenEl=document.getElementById('length');
-const overlay=document.getElementById('overlay'),overTitle=document.getElementById('overTitle'),overText=document.getElementById('overText');
-const cols=15,rows=20,cell=24;
-let snake,dir,next,food,score,timer=null,state='menu',last=0,touch=null;
-const dirs={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
-function reset(){snake=[{x:5,y:10},{x:4,y:10},{x:3,y:10}];dir={...dirs.right};next={...dir};score=0;spawn();updateStats();draw()}
-function spawn(){let p;do{p={x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*rows)}}while(snake.some(s=>s.x===p.x&&s.y===p.y));food=p}
-function updateStats(){scoreEl.textContent=score;lenEl.textContent=snake.length}
-function rounded(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
-function draw(){
- ctx.clearRect(0,0,360,480);ctx.fillStyle='#fff';ctx.fillRect(0,0,360,480);
- ctx.strokeStyle='#edf1e4';ctx.lineWidth=1;
- for(let x=0;x<=cols;x++){ctx.beginPath();ctx.moveTo(x*cell,0);ctx.lineTo(x*cell,480);ctx.stroke()}
- for(let y=0;y<=rows;y++){ctx.beginPath();ctx.moveTo(0,y*cell);ctx.lineTo(360,y*cell);ctx.stroke()}
- // fruit
- const fx=food.x*cell+12,fy=food.y*cell+12;
- ctx.fillStyle='#ff8e9e';ctx.beginPath();ctx.arc(fx,fy,9,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#ffd8de';ctx.beginPath();ctx.arc(fx-3,fy-3,2.5,0,Math.PI*2);ctx.fill();
- ctx.strokeStyle='#269b69';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(fx+1,fy-8);ctx.lineTo(fx+4,fy-13);ctx.stroke();
- snake.slice().reverse().forEach((p,ri)=>{const i=snake.length-1-ri;const x=p.x*cell+12,y=p.y*cell+12;
- ctx.fillStyle=i===0?'#269b69':(i%2?'#70d99a':'#58c98a');ctx.beginPath();ctx.arc(x,y,i===0?11:10,0,Math.PI*2);ctx.fill();
- if(i===0){const side={x:-dir.y*4,y:dir.x*4},front={x:dir.x*4,y:dir.y*4};
- for(const sign of [-1,1]){ctx.fillStyle='white';ctx.beginPath();ctx.arc(x+front.x+side.x*sign,y+front.y+side.y*sign,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#315b4a';ctx.beginPath();ctx.arc(x+front.x+side.x*sign+1,y+front.y+side.y*sign+1,1.2,0,Math.PI*2);ctx.fill()}}
- });
- if(state==='menu'){banner('Chào bạn! Mình là Momo','Nhấn BẮT ĐẦU để chơi nhé')}
- if(state==='paused'){banner('Tạm dừng','Nhấn TIẾP TỤC để chơi tiếp')}
+if(typeof Phaser==="undefined"){
+ document.getElementById("message").textContent=
+ "Không tải được Phaser. Hãy kiểm tra Internet.";
+ throw new Error("Phaser not loaded");
 }
-function banner(a,b){ctx.fillStyle='#315b4a';ctx.textAlign='center';ctx.font='bold 23px system-ui';ctx.fillText(a,180,215);ctx.font='15px system-ui';ctx.fillStyle='#668575';ctx.fillText(b,180,245)}
-function setDir(d){const v=dirs[d];if(!v||v.x+dir.x===0&&v.y+dir.y===0)return;next={...v}}
-function step(){dir=next;const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};const eat=h.x===food.x&&h.y===food.y;
- if(h.x<0||h.x>=cols||h.y<0||h.y>=rows||snake.slice(0,eat?snake.length:snake.length-1).some(p=>p.x===h.x&&p.y===h.y)){end();return}
- snake.unshift(h);if(eat){score+=10;spawn()}else snake.pop();updateStats();draw()}
-function loop(){if(state!=='playing')return;step();if(state==='playing')timer=setTimeout(loop,145)}
-function start(){clearTimeout(timer);reset();state='playing';overlay.style.display='none';draw();timer=setTimeout(loop,145)}
-function end(){state='over';clearTimeout(timer);overTitle.textContent='Giỏi lắm!';overText.textContent='Bạn đã ghi được '+score+' điểm. Thử lại nhé!';overlay.style.display='flex'}
-document.getElementById('start').onclick=()=>state==='paused'?resume():start();
-document.getElementById('pause').onclick=()=>{if(state==='playing'){state='paused';clearTimeout(timer);overTitle.textContent='Tạm dừng';overText.textContent='Nghỉ một chút rồi chơi tiếp nhé!';document.getElementById('again').textContent='TIẾP TỤC';overlay.style.display='flex';draw()}else if(state==='paused')resume()};
-function resume(){state='playing';overlay.style.display='none';document.getElementById('again').textContent='CHƠI NGAY';draw();timer=setTimeout(loop,145)}
-document.getElementById('again').onclick=()=>state==='paused'?resume():start();
-document.querySelectorAll('[data-dir]').forEach(b=>b.addEventListener('click',()=>setDir(b.dataset.dir)));
-canvas.addEventListener('touchstart',e=>{touch={x:e.changedTouches[0].clientX,y:e.changedTouches[0].clientY}},{passive:true});
-canvas.addEventListener('touchend',e=>{if(!touch)return;const dx=e.changedTouches[0].clientX-touch.x,dy=e.changedTouches[0].clientY-touch.y;if(Math.max(Math.abs(dx),Math.abs(dy))>18)setDir(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));touch=null},{passive:true});
-document.addEventListener('keydown',e=>{const m={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};if(m[e.key])setDir(m[e.key]);if(e.key===' '){if(state==='menu'||state==='over')start();else if(state==='playing')document.getElementById('pause').click();else resume()}});
-reset();draw();
-})();
+
+// =====================================
+// 1. DỮ LIỆU NHÂN VẬT
+// =====================================
+
+const HEROES=[
+ {
+  id:"momo",name:"Momo Cơ Bản",emoji:"🐍",
+  color:0x55d887,speed:125,turn:2.8,
+  water:0.4,stun:1,description:"Cân bằng, dễ điều khiển."
+ },
+ {
+  id:"coner",name:"Momo Coner",emoji:"💚",
+  color:0x62d8c5,speed:135,turn:3,
+  water:0.45,stun:0.9,description:"Nhanh nhẹn, linh hoạt."
+ },
+ {
+  id:"twins",name:"Momo Hai Bím",emoji:"🎀",
+  color:0xff9dcf,speed:132,turn:3.5,
+  water:0.4,stun:0.75,description:"Đổi hướng nhanh, hồi choáng tốt."
+ },
+ {
+  id:"croc",name:"Cá Sấu",emoji:"🐊",
+  color:0x77a94c,speed:118,turn:2.5,
+  water:1,stun:1.2,description:"Không bị chậm khi xuống nước."
+ },
+ {
+  id:"ice",name:"Rồng Băng",emoji:"❄️",
+  color:0x70d9ff,speed:120,turn:2.8,
+  water:0.7,stun:0.8,description:"Kháng choáng tốt."
+ },
+ {
+  id:"fox",name:"Hồ Ly",emoji:"🦊",
+  color:0xffa34f,speed:145,turn:3.2,
+  water:0.4,stun:1.2,description:"Tốc độ di chuyển cao."
+ },
+ {
+  id:"turtle",name:"Rùa Linh",emoji:"🐢",
+  color:0x9cbd62,speed:95,turn:2.1,
+  water:0.7,stun:0.5,description:"Khả năng kháng choáng tốt."
+ },
+ {
+  id:"fire",name:"Hỏa Long",emoji:"🐉",
+  color:0xff704b,speed:135,turn:2.7,
+  water:0.35,stun:1.2,description:"Tăng tốc mạnh."
+ },
+ {
+  id:"rabbit",name:"Thỏ Ngọc",emoji:"🐰",
+  color:0xe7d9ff,speed:125,turn:3.8,
+  water:0.4,stun:0.8,description:"Linh hoạt, né tránh tốt."
+ }
+];
+
+let selectedHero=HEROES[0];
+let scene;
+let started=false;
+let boost=false;
+let joyX=0,joyY=0,joyActive=false;
+let score=0;
+let foodItems=[];
+let trees=[];
+let rocks=[];
+let traps=[];
+let apples=[];
+let rivals=[];
+let gameEnded=false;
+
+const WORLD=3000;
+
+const joystick=document.getElementById("joy");
+const stick=document.getElementById("stick");
+const boostButton=document.getElementById("boost");
+
+// =====================================
+// 2. CHỌN NHÂN VẬT
+// =====================================
+
+const characterBox=document.getElementById("characters");
+
+function drawCharacterMenu(){
+
+ characterBox.innerHTML="";
+
+ HEROES.forEach(hero=>{
+
+  const card=document.createElement("button");
+  card.className="character"+
+   (hero.id===selectedHero.id?" selected":"");
+
+  card.innerHTML=
+   `<div class="avatar">${hero.emoji}</div>
+   <strong>${hero.name}</strong>
+   <small>Tốc độ ${hero.speed}</small>`;
+
+  card.onclick=()=>{
+
+   selectedHero=hero;
+
+   drawCharacterMenu();
+
+   document.getElementById("stats").innerHTML=
+    `<b>${hero.name}</b><br>
+    Tốc độ: ${hero.speed}<br>
+    Khả năng đổi hướng: ${hero.turn}<br>
+    Khả năng di chuyển dưới nước: ${Math.round(hero.water*100)}%<br>
+    ${hero.description}`;
+  };
+
+  characterBox.appendChild(card);
+ });
+}
+
+drawCharacterMenu();
+
+document.getElementById("stats").innerHTML=
+ selectedHero.description;
+
+// =====================================
+// 3. KHỞI TẠO PHASER
+// =====================================
+
+const config={
+ type:Phaser.AUTO,
+ parent:"game",
+ backgroundColor:"#78bd78",
+ scale:{
+  mode:Phaser.Scale.RESIZE,
+  width:window.innerWidth,
+  height:window.innerHeight
+ },
+ scene:{create,update}
+};
+
+new Phaser.Game(config);
+
+// =====================================
+// 4. TẠO THẾ GIỚI
+// =====================================
+
+function create(){
+
+ scene=this;
+
+ this.cameras.main.setBounds(0,0,WORLD,WORLD);
+
+ foodItems=[];
+ trees=[];
+ rocks=[];
+ traps=[];
+ apples=[];
+ rivals=[];
+
+ const ground=this.add.graphics();
+
+ ground.fillStyle(0x78bd78,1);
+ ground.fillRect(0,0,WORLD,WORLD);
+
+ ground.lineStyle(2,0x5b9e61,.18);
+
+ for(let x=0;x<=WORLD;x+=80)
+  ground.lineBetween(x,0,x,WORLD);
+
+ for(let y=0;y<=WORLD;y+=80)
+  ground.lineBetween(0,y,WORLD,y);
+
+ ground.setDepth(-100);
+
+ // CỎ
+ for(let i=0;i<500;i++){
+
+  const x=Phaser.Math.Between(20,WORLD-20);
+  const y=Phaser.Math.Between(20,WORLD-20);
+
+  const g=this.add.graphics();
+  g.lineStyle(2,0x397e43,.35);
+  g.lineBetween(x,y,x+5,y-8);
+  g.lineBetween(x+5,y-8,x+9,y);
+  g.setDepth(y);
+ }
+
+ // CÂY
+ for(let i=0;i<130;i++){
+
+  const x=Phaser.Math.Between(100,WORLD-100);
+  const y=Phaser.Math.Between(100,WORLD-100);
+
+  if(Math.hypot(x-1500,y-1500)<230)continue;
+
+  const tree=this.add.container(x,y);
+
+  const shadow=this.add.ellipse(0,12,48,18,0x24502b,.3);
+  const trunk=this.add.rectangle(0,0,14,30,0x86532f);
+
+  const leaves=this.add.circle(
+   0,-20,25,
+   Phaser.Math.RND.pick([
+    0x287e45,0x369653,0x4aa75b,0x226d40
+   ])
+  );
+
+  const light=this.add.circle(-9,-28,9,0x9be77f,.6);
+
+  tree.add([shadow,trunk,leaves,light]);
+  tree.setDepth(y);
+
+  trees.push({
+   x,y,object:tree,fallen:false,slowUntil:0
+  });
+ }
+
+ // ĐÁ THƯỜNG
+ for(let i=0;i<65;i++){
+
+  const x=Phaser.Math.Between(100,WORLD-100);
+  const y=Phaser.Math.Between(100,WORLD-100);
+
+  if(Math.hypot(x-1500,y-1500)<220)continue;
+
+  const rock=this.add.container(x,y);
+
+  const shadow=this.add.ellipse(3,9,38,15,0x315b35,.35);
+
+  const stone=this.add.ellipse(
+   0,0,32,23,
+   Phaser.Math.RND.pick([0x858e85,0x9ba69b,0x697c70])
+  );
+
+  stone.setStrokeStyle(2,0x65766a);
+
+  rock.add([shadow,stone]);
+  rock.setDepth(y);
+
+  rocks.push({x,y,object:rock,radius:23});
+ }
+
+ // HỒ NƯỚC
+ const lake=this.add.graphics();
+
+ lake.fillStyle(0x318dc1,1);
+ lake.fillEllipse(650,700,440,260);
+
+ lake.lineStyle(9,0x9ce8e9,.8);
+ lake.strokeEllipse(650,700,440,260);
+
+ lake.lineStyle(3,0xffffff,.3);
+ lake.strokeEllipse(650,700,410,235);
+
+ lake.setDepth(710);
+
+ // RANH GIỚI
+ const border=this.add.graphics();
+
+ border.lineStyle(16,0x28623d,1);
+ border.strokeRect(0,0,WORLD,WORLD);
+ border.setDepth(5000);
+
+ // NHÂN VẬT
+ this.snake=createSnake(
+  1500,1500,selectedHero,true
+ );
+
+ this.cameras.main.startFollow(
+  this.snake.head,true,.08,.08
+ );
+
+ // LINH QUẢ
+ spawnFoods(45);
+
+ // ĐỐI THỦ AI
+ for(let i=0;i<4;i++){
+
+  const x=Phaser.Math.Between(400,2600);
+  const y=Phaser.Math.Between(400,2600);
+
+  rivals.push(createSnake(
+   x,y,HEROES[(i+2)%HEROES.length],false
+  ));
+ }
+
+ // BẪY ĐÁ
+ for(let i=0;i<8;i++){
+  createTrap();
+ }
+
+ // TẠO BẪY MỚI ĐỊNH KỲ
+ this.time.addEvent({
+  delay:11000,
+  loop:true,
+  callback:()=>{
+   if(started&&!gameEnded&&traps.length<12)
+    createTrap();
+  }
+ });
+
+}
+
+// =====================================
+// 5. TẠO NHÂN VẬT
+// =====================================
+
+function createSnake(x,y,hero,isPlayer){
+
+ const bodyColor=hero.color;
+
+ const snake={
+  x,y,
+  angle:-Math.PI/2,
+  length:isPlayer?5:8,
+  trail:[],
+  segments:[],
+  head:null,
+  shadow:null,
+  hero,
+  isPlayer,
+  stunUntil:0,
+  slowUntil:0,
+  dead:false,
+  aiAngle:Math.random()*Math.PI*2,
+  aiTimer:0
+ };
+
+ for(let i=0;i<500;i++)
+  snake.trail.push({x,y});
+
+ snake.shadow=scene.add.ellipse(
+  x,y+10,45,24,0x17462a,.35
+ );
+
+ for(let i=0;i<130;i++){
+
+  const body=scene.add.circle(x,y,12,bodyColor);
+  body.setStrokeStyle(2,0x207e4d);
+  body.setDepth(y);
+
+  snake.segments.push(body);
+ }
+
+ snake.head=scene.add.container(x,y);
+
+ const headShadow=scene.add.ellipse(
+  0,10,35,20,0x17462a,.3
+ );
+
+ const headShape=scene.add.ellipse(
+  0,0,35,30,bodyColor
+ );
+
+ headShape.setStrokeStyle(3,0x207e4d);
+
+ const eye1=scene.add.circle(9,-7,5,0xffffff);
+ const eye2=scene.add.circle(9,7,5,0xffffff);
+
+ const pupil1=scene.add.circle(11,-7,2,0x173b28);
+ const pupil2=scene.add.circle(11,7,2,0x173b28);
+
+ snake.head.add([
+  headShadow,headShape,
+  eye1,eye2,pupil1,pupil2
+ ]);
+
+ // ĐẶC ĐIỂM NHÂN VẬT
+ if(hero.id==="twins"){
+
+  snake.head.add([
+   scene.add.ellipse(-12,-16,9,20,0xff85bd),
+   scene.add.ellipse(-12,16,9,20,0xff85bd),
+   scene.add.circle(-12,-23,5,0xffe8f4),
+   scene.add.circle(-12,23,5,0xffe8f4)
+  ]);
+
+ }
+
+ if(hero.id==="coner"){
+
+  snake.head.add([
+   scene.add.triangle(-12,-17,0,0,10,18,0x83fff0),
+   scene.add.triangle(-12,17,0,0,10,-18,0x83fff0)
+  ]);
+
+ }
+
+ if(hero.id==="croc"){
+
+  snake.head.add(
+   scene.add.ellipse(19,0,17,19,0x5c943d)
+  );
+
+  snake.head.add([
+   scene.add.circle(25,-6,2,0xffffff),
+   scene.add.circle(25,6,2,0xffffff)
+  ]);
+
+ }
+
+ if(hero.id==="fox"){
+
+  snake.head.add([
+   scene.add.triangle(-12,-12,0,0,12,17,0xffa34f),
+   scene.add.triangle(-12,12,0,0,12,-17,0xffa34f)
+  ]);
+
+ }
+
+ if(hero.id==="rabbit"){
+
+  snake.head.add([
+   scene.add.ellipse(-5,-17,9,24,0xe7d9ff),
+   scene.add.ellipse(-5,17,9,24,0xe7d9ff)
+  ]);
+
+ }
+
+ if(hero.id==="fire"){
+
+  snake.head.add(
+   scene.add.triangle(-15,0,0,0,15,0,0xffb347)
+  );
+
+ }
+
+ if(hero.id==="ice"){
+
+  snake.head.add(
+   scene.add.star(-14,0,9,4,0xaff3ff)
+  );
+
+ }
+
+ if(hero.id==="turtle"){
+
+  snake.head.add(
+   scene.add.ellipse(-17,0,18,25,0x4f8050)
+  );
+
+ }
+
+ snake.head.setDepth(y+20);
+
+ return snake;
+}
+
+// =====================================
+// 6. LINH QUẢ VÀ TÁO
+// =====================================
+
+function spawnFoods(number){
+
+ for(let i=0;i<number;i++){
+
+  const x=Phaser.Math.Between(100,WORLD-100);
+  const y=Phaser.Math.Between(100,WORLD-100);
+
+  const food=scene.add.container(x,y);
+
+  const glow=scene.add.circle(0,0,15,0xffd45a,.25);
+
+  const fruit=scene.add.circle(
+   0,0,8,
+   Phaser.Math.RND.pick([
+    0xffcf45,0xff6f78,0x9d79ff,
+    0x57dcda,0xffa34f
+   ])
+  );
+
+  fruit.setStrokeStyle(2,0xffffff,.9);
+
+  food.add([
+   glow,fruit,
+   scene.add.circle(-2,-3,3,0xffffff,.9)
+  ]);
+
+  food.setDepth(y);
+
+  foodItems.push({x,y,object:food,type:"fruit"});
+ }
+
+}
+
+function dropApples(x,y){
+
+ for(let i=0;i<3;i++){
+
+  const ax=x+Phaser.Math.Between(-35,35);
+  const ay=y+Phaser.Math.Between(-35,35);
+
+  const apple=scene.add.container(ax,ay);
+
+  const fruit=scene.add.circle(0,0,9,0xe83232);
+  fruit.setStrokeStyle(2,0xffffff);
+
+  const leaf=scene.add.ellipse(5,-9,7,4,0x55c65b);
+
+  apple.add([fruit,leaf]);
+  apple.setDepth(ay);
+
+  apples.push({
+   x:ax,y:ay,object:apple
+  });
+ }
+
+}
+
+// =====================================
+// 7. CÂY ĐỔ
+// =====================================
+
+function fellTree(tree,now){
+
+ if(tree.fallen)return;
+
+ tree.fallen=true;
+ tree.slowUntil=now+8000;
+
+ scene.tweens.add({
+  targets:tree.object,
+  angle:90,
+  duration:450,
+  ease:"Back.easeOut"
+ });
+
+ dropApples(tree.x,tree.y);
+
+ document.getElementById("message").textContent=
+  "🌳 Cây đổ! Táo đã rơi ra!";
+
+}
+
+// =====================================
+// 8. BẪY ĐÁ NGẦM
+// =====================================
+
+function createTrap(){
+
+ const x=Phaser.Math.Between(250,WORLD-250);
+ const y=Phaser.Math.Between(250,WORLD-250);
+
+ if(Math.hypot(x-1500,y-1500)<200)return;
+
+ const warning=scene.add.circle(
+  x,y,48,0xff3b32,.12
+ );
+
+ warning.setStrokeStyle(4,0xff3b32,.8);
+
+ const cracks=scene.add.graphics();
+ cracks.lineStyle(3,0xffb25b,.9);
+
+ cracks.lineBetween(x-18,y-12,x+12,y+15);
+ cracks.lineBetween(x+12,y+15,x+23,y-10);
+ cracks.lineBetween(x-5,y+5,x-20,y+25);
+
+ cracks.setDepth(y+1);
+
+ const stone=scene.add.container(x,y+55);
+
+ const shape=scene.add.polygon(
+  0,0,
+  [-30,15,-18,-15,0,-35,20,-15,32,15],
+  0x78847a
+ );
+
+ shape.setStrokeStyle(3,0x46594b);
+ stone.add(shape);
+ stone.setDepth(y+2);
+
+ stone.setVisible(false);
+
+ const trap={
+  x,y,warning,cracks,stone,
+  state:"warning",
+  timer:Phaser.Math.Between(1800,3200),
+  duration:0
+ };
+
+ traps.push(trap);
+
+}
+
+// =====================================
+// 9. XỬ LÝ BẪY
+// =====================================
+
+function updateTraps(delta){
+
+ for(let i=traps.length-1;i>=0;i--){
+
+  const t=traps[i];
+
+  t.timer-=delta;
+
+  if(t.state==="warning"){
+
+   t.warning.setScale(
+    1+Math.sin(Date.now()/100)*.08
+   );
+
+   if(t.timer<=0){
+
+    t.state="active";
+    t.duration=1200;
+
+    t.warning.setFillStyle(0xff3b32,.35);
+    t.stone.setVisible(true);
+    t.stone.setPosition(t.x,t.y-20);
+
+    scene.tweens.add({
+     targets:t.stone,
+     y:t.y-65,
+     duration:300,
+     yoyo:true
+    });
+
+   }
+
+  }else{
+
+   t.duration-=delta;
+
+   const hit=[
+    scene.snake,...rivals
+   ];
+
+   for(const s of hit){
+
+    if(s.dead)continue;
+
+    if(Math.hypot(s.x-t.x,s.y-t.y)<48){
+     stunSnake(s,3000,"Bị bẫy đá đánh trúng!");
+     s.x+=Math.cos(s.angle+Math.PI)*35;
+     s.y+=Math.sin(s.angle+Math.PI)*35;
+    }
+   }
+
+   if(t.duration<=0){
+
+    t.warning.destroy();
+    t.cracks.destroy();
+    t.stone.destroy();
+
+    traps.splice(i,1);
+   }
+  }
+ }
+
+}
+
+// =====================================
+// 10. CHOÁNG
+// =====================================
+
+function stunSnake(s,duration,reason){
+
+ if(s.dead)return;
+
+ s.stunUntil=Math.max(
+  s.stunUntil,
+  Date.now()+duration*s.hero.stun
+ );
+
+ if(s.isPlayer){
+  document.getElementById("message").textContent=
+   "💫 "+reason;
+ }
+}
+
+// =====================================
+// 11. CẬP NHẬT NHÂN VẬT
+// =====================================
+
+function moveSnake(s,delta,now){
+
+ if(s.dead)return;
+
+ const dt=Math.min(delta/1000,.04);
+
+ // AI
+ if(!s.isPlayer){
+
+  s.aiTimer-=delta;
+
+  if(s.aiTimer<=0){
+
+   s.aiTimer=Phaser.Math.Between(900,2200);
+
+   s.aiAngle+=Phaser.Math.FloatBetween(-1.5,1.5);
+  }
+
+  // AI đổi hướng khi gần tường
+  if(s.x<180||s.x>WORLD-180||
+     s.y<180||s.y>WORLD-180){
+
+   s.aiAngle=Math.atan2(
+    WORLD/2-s.y,WORLD/2-s.x
+   );
+  }
+
+  s.angle+=Phaser.Math.Clamp(
+   Phaser.Math.Angle.Wrap(s.aiAngle-s.angle),
+   -s.hero.turn*dt,
+   s.hero.turn*dt
+  );
+
+ }else if(joyActive){
+
+  const target=Math.atan2(joyY,joyX);
+
+  const diff=Phaser.Math.Angle.Wrap(
+   target-s.angle
+  );
+
+  s.angle+=Phaser.Math.Clamp(
+   diff,-s.hero.turn*dt,s.hero.turn*dt
+  );
+ }
+
+ if(now<s.stunUntil){
+
+  if(s.isPlayer)
+   document.getElementById("status").textContent="💫 Choáng";
+
+  drawSnake(s);
+  return;
+ }
+
+ let speed=s.hero.speed;
+
+ if(boost&&s.isPlayer)
+  speed*=1.55;
+
+ // NƯỚC
+ const inWater=
+  Math.pow((s.x-650)/220,2)+
+  Math.pow((s.y-700)/130,2)<1;
+
+ if(inWater&&s.hero.id!=="croc")
+  speed*=s.hero.water;
+
+ // CÂY ĐỔ LÀM CHẬM
+ for(const tree of trees){
+
+  if(tree.fallen&&now<tree.slowUntil){
+
+   if(Math.hypot(s.x-tree.x,s.y-tree.y)<65)
+    speed*=0.55;
+  }
+ }
+
+ if(now<s.slowUntil)
+  speed*=0.55;
+
+ const nx=s.x+Math.cos(s.angle)*speed*dt;
+ const ny=s.y+Math.sin(s.angle)*speed*dt;
+
+ // TƯỜNG
+ if(nx<22||ny<22||nx>WORLD-22||ny>WORLD-22){
+
+  if(s.isPlayer){
+   killPlayer("Momo đã đâm vào tường!");
+  }else{
+   s.dead=true;
+   s.head.destroy();
+   s.shadow.destroy();
+   s.segments.forEach(b=>b.destroy());
+  }
+
+  return;
+ }
+
+ // ĐÁ CẢN ĐƯỜNG
+ let blocked=false;
+
+ for(const rock of rocks){
+
+  if(Math.hypot(nx-rock.x,ny-rock.y)<rock.radius+13){
+
+   blocked=true;
+   stunSnake(s,2500,"Đụng phải đá!");
+   break;
+  }
+ }
+
+ if(!blocked){
+
+  s.x=nx;
+  s.y=ny;
+ }
+
+ // CÂY
+ for(const tree of trees){
+
+  if(!tree.fallen&&
+   Math.hypot(s.x-tree.x,s.y-tree.y)<36){
+
+   fellTree(tree,now);
+  }
+ }
+
+ // VẼ THÂN
+ s.trail.unshift({x:s.x,y:s.y});
+
+ if(s.trail.length>4500)
+  s.trail.length=4500;
+
+ drawSnake(s);
+
+ // LINH QUẢ
+ if(s.isPlayer){
+
+  for(let i=foodItems.length-1;i>=0;i--){
+
+   const f=foodItems[i];
+
+   if(Math.hypot(s.x-f.x,s.y-f.y)<23){
+
+    f.object.destroy();
+    foodItems.splice(i,1);
+
+    s.length=Math.min(s.length+1,120);
+    score+=10;
+
+    if(foodItems.length<25)
+     spawnFoods(20);
+
+    updateHUD();
+   }
+  }
+ }
+
+ // TÁO
+ for(let i=apples.length-1;i>=0;i--){
+
+  const a=apples[i];
+
+  if(Math.hypot(s.x-a.x,s.y-a.y)<24){
+
+   a.object.destroy();
+   apples.splice(i,1);
+
+   s.length=Math.min(s.length+2,120);
+
+   if(s.isPlayer){
+    score+=20;
+    updateHUD();
+    document.getElementById("message").textContent=
+     "🍎 Ăn táo! Momo đã lớn hơn!";
+   }
+  }
+ }
+
+ // ĐỤNG NHÂN VẬT KHÁC
+ for(const rival of rivals){
+
+  if(rival.dead)continue;
+
+  const distance=Math.hypot(
+   s.x-rival.x,s.y-rival.y
+  );
+
+  if(distance<25){
+
+   if(s.isPlayer){
+    killPlayer("Momo đã va chạm với nhân vật khác!");
+    return;
+   }
+  }
+ }
+
+ if(s.isPlayer){
+
+  const water=document.getElementById("status");
+
+  water.textContent=inWater&&s.hero.id!=="croc"
+   ?"🌊 Đang ở dưới nước"
+   :now<s.stunUntil
+   ?"💫 Choáng"
+   :"Bình thường";
+
+  document.getElementById("position").textContent=
+   "X: "+Math.floor(s.x)+" | Y: "+Math.floor(s.y);
+ }
+
+}
+
+// =====================================
+// 12. VẼ RẮN
+// =====================================
+
+function drawSnake(s){
+
+ const spacing=13;
+
+ for(let i=0;i<s.length;i++){
+
+  const index=Math.min(
+   Math.floor((i+1)*spacing),
+   s.trail.length-1
+  );
+
+  const point=s.trail[index];
+  const body=s.segments[i];
+
+  body.setPosition(point.x,point.y);
+  body.setDepth(point.y+1);
+  body.setVisible(true);
+
+  body.setScale(Math.max(.72,1-i*.002));
+ }
+
+ for(let i=s.length;i<s.segments.length;i++)
+  s.segments[i].setVisible(false);
+
+ s.head.setPosition(s.x,s.y);
+ s.head.setRotation(s.angle);
+ s.head.setDepth(s.y+20);
+
+ s.shadow.setPosition(s.x,s.y+12);
+ s.shadow.setDepth(s.y);
+}
+
+// =====================================
+// 13. CẬP NHẬT HUD
+// =====================================
+
+function updateHUD(){
+
+ const s=scene.snake;
+
+ document.getElementById("hero").textContent=
+  selectedHero.name;
+
+ document.getElementById("score").textContent=score;
+
+ document.getElementById("length").textContent=
+  s.length;
+
+ document.getElementById("level").textContent=
+  Math.floor(score/100)+1;
+}
+
+// =====================================
+// 14. KẾT THÚC
+// =====================================
+
+function killPlayer(reason){
+
+ if(gameEnded)return;
+
+ gameEnded=true;
+ started=false;
+
+ document.getElementById("deathReason").textContent=reason;
+
+ document.getElementById("gameover").style.display="flex";
+ document.getElementById("controls").style.display="none";
+ document.getElementById("hud").style.display="none";
+}
+
+// =====================================
+// 15. VÒNG LẶP GAME
+// =====================================
+
+function update(time,delta){
+
+ if(!started||gameEnded)return;
+
+ const now=Date.now();
+
+ moveSnake(this.snake,delta,now);
+
+ for(const rival of rivals){
+
+  moveSnake(rival,delta,now);
+
+  if(rival.dead)continue;
+
+  // AI ăn thức ăn
+  for(let i=foodItems.length-1;i>=0;i--){
+
+   const f=foodItems[i];
+
+   if(Math.hypot(rival.x-f.x,rival.y-f.y)<20){
+
+    f.object.destroy();
+    foodItems.splice(i,1);
+    rival.length=Math.min(rival.length+1,120);
+
+    if(foodItems.length<25)
+     spawnFoods(20);
+   }
+  }
+ }
+
+ updateTraps(delta);
+
+}
+
+// =====================================
+// 16. JOYSTICK
+// =====================================
+
+function moveStick(e){
+
+ const rect=joystick.getBoundingClientRect();
+
+ let dx=e.clientX-(rect.left+rect.width/2);
+ let dy=e.clientY-(rect.top+rect.height/2);
+
+ const distance=Math.hypot(dx,dy);
+ const max=36;
+
+ if(distance>max){
+  dx=dx/distance*max;
+  dy=dy/distance*max;
+ }
+
+ stick.style.left=(36+dx)+"px";
+ stick.style.top=(36+dy)+"px";
+
+ if(Math.hypot(dx,dy)>7){
+
+  joyX=dx;
+  joyY=dy;
+  joyActive=true;
+
+ }else{
+  joyActive=false;
+ }
+}
+
+joystick.addEventListener("pointerdown",e=>{
+ e.preventDefault();
+ joystick.setPointerCapture(e.pointerId);
+ moveStick(e);
+});
+
+joystick.addEventListener("pointermove",e=>{
+ if(e.buttons||e.pressure>0)moveStick(e);
+});
+
+function releaseStick(){
+
+ joyActive=false;
+ stick.style.left="34px";
+ stick.style.top="34px";
+}
+
+joystick.addEventListener("pointerup",releaseStick);
+joystick.addEventListener("pointercancel",releaseStick);
+joystick.addEventListener("lostpointercapture",releaseStick);
+
+// =====================================
+// 17. TĂNG TỐC
+// =====================================
+
+boostButton.addEventListener("pointerdown",e=>{
+
+ e.preventDefault();
+ boost=true;
+
+ boostButton.setPointerCapture(e.pointerId);
+ boostButton.style.transform="scale(.92)";
+});
+
+function releaseBoost(){
+
+ boost=false;
+ boostButton.style.transform="scale(1)";
+}
+
+boostButton.addEventListener("pointerup",releaseBoost);
+boostButton.addEventListener("pointercancel",releaseBoost);
+boostButton.addEventListener("lostpointercapture",releaseBoost);
+
+// =====================================
+// 18. BẮT ĐẦU VÀ CHƠI LẠI
+// =====================================
+
+function startGame(){
+
+ score=0;
+ gameEnded=false;
+ started=true;
+ boost=false;
+ joyActive=false;
+
+ document.getElementById("menu").style.display="none";
+ document.getElementById("gameover").style.display="none";
+
+ document.getElementById("hud").style.display="flex";
+ document.getElementById("controls").style.display="flex";
+
+ document.getElementById("message").textContent=
+  "Chào mừng đến với Rừng Khởi Nguyên!";
+
+ scene.scene.restart();
+
+}
+
+document.getElementById("play").addEventListener(
+ "click",startGame
+);
+
+document.getElementById("restart").addEventListener(
+ "click",()=>{
+
+  document.getElementById("gameover").style.display="none";
+  document.getElementById("menu").style.display="block";
+
+  document.getElementById("hud").style.display="none";
+  document.getElementById("controls").style.display="none";
+
+  started=false;
+  gameEnded=false;
+  boost=false;
+  joyActive=false;
+
+  drawCharacterMenu();
+ }
+);
+
 </script>
 </body>
 </html>
